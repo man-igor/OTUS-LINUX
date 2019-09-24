@@ -1,0 +1,26 @@
+---
+# tasks file for nginx
+- name: Add repository
+  yum:
+      name: epel-release
+      state: present
+
+- name: install nginx
+  yum:
+    name: nginx
+    state: present
+    
+- name: Copy template to host
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: reload nginx
+
+- name: enable on boot and start
+  systemd:
+    name: nginx
+    state: started
+    enabled: yes
