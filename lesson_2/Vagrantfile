@@ -1,0 +1,30 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+
+Vagrant.configure("2") do |config|
+        config.vm.box = "centos/7"
+        config.vm.hostname = "lesson2"
+        config.vm.network "private_network", ip: "192.168.33.10"
+        config.vm.provider "libvirt" do |lb|
+          lb.memory = "1024"
+          lb.cpus = "2"
+          lb.storage :file, :size => '1G', :type => 'raw'
+          lb.storage :file, :size => '1G', :type => 'raw'
+          lb.storage :file, :size => '1G', :type => 'raw'
+          lb.storage :file, :size => '1G', :type => 'raw'
+        end
+ 	config.vm.provision "shell", inline: <<-SHELL
+	      yum install -y mdadm smartmontools hdparm gdisk
+              mdadm --create --verbose /dev/md0 -l 5 -n 4 /dev/vd{b,c,d,e}
+              parted -s /dev/md0 mklabel gpt
+              parted /dev/md0 mkpart primary ext4 0% 20%
+              parted /dev/md0 mkpart primary ext4 20% 40%
+              parted /dev/md0 mkpart primary ext4 40% 60%
+              parted /dev/md0 mkpart primary ext4 60% 100%
+              for i in $(seq 1 4); do mkfs.ext4 /dev/md0p$i; done
+              mkdir -p /raid/part{1,2,3,4}
+              for i in $(seq 1 4); do mount /dev/md0p$i /raid/part$i; done
+            SHELL
+end
