@@ -1,0 +1,17 @@
+---
+# tasks file for freeipa-client
+
+- name: Add repository
+  yum:
+      name: epel-release
+      state: present
+
+- name: install freeipa-client
+  yum:
+    name: freeipa-client
+    state: present
+
+- name: run freeipa client installer
+  args:
+    creates: /etc/ipa/default.conf
+  command: "ipa-client-install -U --force-join --force-ntpd --mkhomedir --server={{ freeipa_server }} --realm={{ freeipa_realm }} --domain={{ freeipa_domain }} --principal={{ freeipa_principal }} --hostname={{ freeipa_hostname }} --password={{ freeipa_password }}"
