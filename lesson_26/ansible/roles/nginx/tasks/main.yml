@@ -19,6 +19,21 @@
     mode: '0644'
   notify: reload nginx
 
+- name: create otus directory
+  file:
+    path: /usr/share/nginx/html/otus
+    state: directory
+    owner: nginx
+    group: nginx
+
+- name: copy file index.html
+  copy:
+    src: index.html
+    dest: /usr/share/nginx/html/otus/
+    owner: nginx
+    group: nginx
+    mode: '0644'
+
 - name: enable on boot and start
   systemd:
     name: nginx

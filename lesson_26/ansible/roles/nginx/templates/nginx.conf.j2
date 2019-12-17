@@ -43,16 +43,19 @@ http {
         # Load configuration files for the default server block.
         include /etc/nginx/default.d/*.conf;
    
-        add_header Set-Cookie remip=$remote_addr;
+#        add_header Set-Cookie remip=$remote_addr;
 
-        location ~ /set_cookie$ {
-          if ($cookie_remip = '192.168.33.1') { 
+       location ~ /set_cookie$ {
              add_header Set-Cookie access=secretvalue;
              return 301 http://$server_name/;
-          }
-          return 403;
         }
-    
+
+       location ~ /otus {
+         if ($cookie_access != 'secretvalue') {
+             return 403;
+            }
+	}
+
        location / {
            if ($cookie_access != 'secretvalue') {
              rewrite ^(/.*)$ http://$server_name/set_cookie;
