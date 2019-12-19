@@ -1,0 +1,12 @@
+Return-Path: <manushiniv@test.com>
+Delivered-To: imanushin@otus.lan
+Received: from mail.otus.lan
+	by lesson27 with LMTP id kO8WN2qj+l3tIwAAzHrz1w
+	for <imanushin@otus.lan>; Wed, 18 Dec 2019 22:08:42 +0000
+Received: from test.lan (gateway [192.168.121.1])
+	by mail.otus.lan (Postfix) with ESMTP id BADFB1852D
+	for <imanushin@otus.lan>; Wed, 18 Dec 2019 22:06:51 +0000 (UTC)
+
+Lesson 27
+SMTP,IMPA,POP3
+Postfix+dovecot

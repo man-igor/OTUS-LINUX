@@ -1,0 +1,86 @@
+# 2.2.36 (1f10bfa63): /etc/dovecot/dovecot.conf
+# OS: Linux 3.10.0-957.12.2.el7.x86_64 x86_64 CentOS Linux release 7.7.1908 (Core) xfs
+# Hostname: lesson27
+auth_mechanisms = plain login
+first_valid_uid = 1000
+mail_location = maildir:/var/mail/vhosts/%d/%n
+mail_privileged_group = mail
+mbox_write_locks = fcntl
+namespace inbox {
+  inbox = yes
+  location = 
+  mailbox Drafts {
+    special_use = \Drafts
+  }
+  mailbox Junk {
+    special_use = \Junk
+  }
+  mailbox Sent {
+    special_use = \Sent
+  }
+  mailbox "Sent Messages" {
+    special_use = \Sent
+  }
+  mailbox Trash {
+    special_use = \Trash
+  }
+  prefix = 
+}
+passdb {
+  driver = pam
+}
+passdb {
+  args = /etc/dovecot/dovecot-sql.conf.ext
+  driver = sql
+}
+service auth-worker {
+  user = vmail
+}
+service auth {
+  unix_listener /var/spool/postfix/private/auth {
+    mode = 0600
+    user = vmail
+  }
+  unix_listener auth-userdb {
+    group = postfix
+    mode = 0600
+    user = postfix
+  }
+  user = dovecot
+}
+service imap-login {
+  inet_listener imap {
+    port = 0
+  }
+  inet_listener imaps {
+    port = 993
+    ssl = yes
+  }
+}
+service lmtp {
+  unix_listener /var/spool/postfix/private/dovecot-lmtp {
+    group = postfix
+    mode = 0600
+    user = postfix
+  }
+}
+service pop3-login {
+  inet_listener pop3 {
+    port = 0
+  }
+  inet_listener pop3s {
+    port = 995
+    ssl = yes
+  }
+}
+ssl = required
+ssl_cert = </etc/pki/dovecot/certs/dovecot.pem
+ssl_key =  # hidden, use -P to show it
+userdb {
+  driver = passwd
+}
+userdb {
+  args = uid=vmail gid=vmail home=/var/mail/vhosts/%d/%n
+  driver = static
+}
+
