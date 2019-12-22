@@ -47,18 +47,18 @@ http {
 
        location ~ /set_cookie$ {
              add_header Set-Cookie access=secretvalue;
-             return 301 http://$server_name/;
+             return 301 http://$server_name$request_uri;
         }
 
-       location ~ /otus {
-         if ($cookie_access != 'secretvalue') {
-             return 403;
-            }
-	}
+#       location ~ /otus {
+#         if ($cookie_access != 'secretvalue') {
+#             return 403;
+#            }
+#	}
 
        location / {
            if ($cookie_access != 'secretvalue') {
-             rewrite ^(/.*)$ http://$server_name/set_cookie;
+             return 301 http://$server_name/set_cookie;
             }
        }
 
