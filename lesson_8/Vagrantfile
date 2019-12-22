@@ -1,0 +1,19 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+
+Vagrant.configure("2") do |config|
+    config.vm.box = "centos/7"
+    config.vm.hostname = "lesson8"
+    config.vm.provider "libvirt" do |lb|
+      lb.memory = "1024"
+      lb.cpus = "2"
+    end
+
+  config.vm.provision "ansible" do |ansible|
+    ansible.verbose = "v"
+    ansible.playbook = "provisioning/playbook.yml"
+    ansible.sudo = "true"
+  end
+end

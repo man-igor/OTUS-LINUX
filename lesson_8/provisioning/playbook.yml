@@ -1,0 +1,141 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: Add repository
+    yum:
+      name: epel-release
+      state: present
+  - name: copy watchlog
+    copy:
+      src: watchlog
+      dest: /etc/sysconfig/watchlog
+      owner: root
+      group: root
+      mode: '0640'
+  - name: copy watchlog.log
+    copy:
+      src: watchlog.log
+      dest: /var/log/watchlog.log
+      owner: root
+      group: root
+      mode: '0640'
+  - name: copy watchlog.sh
+    copy:
+      src: watchlog.sh
+      dest: /opt/watchlog.sh 
+      owner: root
+      group: root
+      mode: '0755'
+  - name: copy watchlog.service 
+    copy:
+      src: watchlog.service
+      dest: /etc/systemd/system/     
+      owner: root
+      group: root
+      mode: '0644'
+  - name: copy watchlog.timer
+    copy:
+      src: watchlog.timer
+      dest: /etc/systemd/system/ 
+      owner: root
+      group: root
+      mode: '0644'
+  - name: just force systemd to reread configs
+    systemd:
+      daemon_reload: yes
+  - name: start timer
+    systemd:
+      name: watchlog.timer
+      state: started
+      enabled: yes
+  - name: install spawn-fcgi
+    yum:
+      name: 
+        - spawn-fcgi
+        - php
+        - php-cli
+        - mod_fcgid
+        - httpd
+      state: present
+  - name: replace line 
+    lineinfile:
+      path: /etc/sysconfig/spawn-fcgi
+      regexp: '^#SOCKET'
+      line: SOCKET=/var/run/php-fcgi.sock
+  - name: replace line
+    lineinfile:
+      path: /etc/sysconfig/spawn-fcgi 
+      regexp: '^#OPTIONS'
+      line: OPTIONS="-u apache -g apache -s $SOCKET -S -M 0600 -C 32 -F 1 -- /usr/bin/php-cgi"
+  - name: copy spawn-fcgi.service
+    copy:
+      src: spawn-fcgi.service
+      dest: /etc/systemd/system/
+      owner: root
+      group: root
+      mode: '0644'
+  - name: start service spawn-fcgi
+    systemd:
+      state: started
+      daemon_reload: yes
+      name: spawn-fcgi
+  - name: copy httpd.service
+    copy:
+      src: httpd@.service
+      dest: /etc/systemd/system/
+      owner: root
+      group: root
+      mode: '0644'
+  - name: delete httpd
+    file:
+     path: /etc/sysconfig/httpd
+     state: absent
+  - name: copy httpd-first
+    copy:
+      src: httpd-first
+      dest: /etc/sysconfig/
+      owner: root
+      group: root
+      mode: '0644'
+  - name: copy httpd-second     
+    copy:
+      src: httpd-second
+      dest: /etc/sysconfig/
+      owner: root
+      group: root
+      mode: '0644'
+  - name: delete httpd.conf
+    file:
+      path: /etc/httpd/conf/httpd.conf
+      state: absent
+  - name: copy first.conf
+    copy:
+      src: first.conf
+      dest: /etc/httpd/conf/
+      owner: root
+      group: root
+      mode: '0644'
+  - name: copy second.conf
+    copy:
+      src: second.conf
+      dest: /etc/httpd/conf/
+      owner: root
+      group: root
+      mode: '0644'
+  - name: just force systemd to reread configs
+    systemd:
+      daemon_reload: yes
+  - name: start httpd-first
+    systemd:
+      state: started
+      name: httpd@first
+  - name: start httpd-second
+    systemd:
+      state: started
+      name: httpd@second
+
+
+
+
+
