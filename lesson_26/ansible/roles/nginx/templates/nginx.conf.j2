@@ -47,7 +47,7 @@ http {
 
        location ~ /set_cookie$ {
              add_header Set-Cookie access=secretvalue;
-             return 301 http://$server_name$request_uri;
+             return 301 http://$server_name$cookie_req;
         }
 
 #       location ~ /otus {
@@ -58,6 +58,7 @@ http {
 
        location / {
            if ($cookie_access != 'secretvalue') {
+             add_header Set-Cookie req=$uri;
              return 301 http://$server_name/set_cookie;
             }
        }
