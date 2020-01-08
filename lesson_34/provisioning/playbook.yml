@@ -1,0 +1,72 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: Add repository
+    yum:
+      name: epel-release
+      state: present
+      update_cache: yes
+
+  - name: install packages
+    yum:
+      name: nfs-utils
+      state: present
+
+- hosts: server
+  become: yes
+  tasks:
+  - name: create directory otus
+    file:
+      path: /mnt/otus
+      state: directory
+      mode: '0755'
+
+  - name: create directory upload
+    file:
+      path: /mnt/otus/upload
+      state: directory
+      mode: '0777'
+
+  - name: copy exports file.
+    template:
+      src: exports.j2
+      dest: /etc/exports
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: ensure nfs service is running
+    service:
+      name: "{{ item }}"
+      state: started
+      enabled: yes
+    with_items:
+      - firewalld
+      - rpcbind
+      - nfslock
+      - nfs
+
+  - name: add sevice nfs to firewalld
+    firewalld:
+      service: "{{ item }}"
+      immediate: yes
+      permanent: yes
+      zone: public
+      state: enabled
+    with_items:
+      - nfs
+      - nfs3
+      - mountd
+      - rpc-bind
+
+- hosts: client
+  become: yes
+  tasks:
+  - name: Mount up device by label
+    mount:
+      path: /mnt
+      src: 192.168.11.150:/mnt/otus
+      fstype: nfs
+      opts: "vers=3,proto=udp"
+      state: mounted
