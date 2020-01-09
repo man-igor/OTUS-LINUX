@@ -1,0 +1,150 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: Add percona yum repository
+    yum:
+      name: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+      state: present
+      update_cache: yes
+
+  - name: Add key
+    rpm_key:
+      key: https://www.percona.com/downloads/RPM-GPG-KEY-percona
+      state: present
+
+  - name: install packages
+    yum: 
+      name: Percona-Server-server-57
+      state: present
+
+  - name: install packages
+    yum:
+      name: MySQL-python
+      state: present
+
+- hosts: master
+  become: yes
+  tasks:
+  - name: Copy config on server 
+    copy: 
+      src: conf.d/{{ item }}
+      dest: /etc/my.cnf.d/
+      owner: root 
+      group: root 
+      mode: 0644
+    with_items:
+      - 01-base.cnf
+      - 02-max-connections.cnf
+      - 03-performance.cnf
+      - 04-slow-query.cnf
+      - 05-binlog.cnf
+
+  - name: start mysql
+    systemd:
+      state: started
+      name: mysql
+
+  - name: grep password
+    shell: cat /var/log/mysqld.log | grep 'root@localhost:' | awk '{print $11}'
+    register: mysql_pass
+
+  - name: Change root password
+    command: mysqladmin -u root -p'{{ mysql_pass.stdout }}' password "{{ new_db_pass }}"
+
+  - name: Create a new database with name 'bet'
+    mysql_db:
+      login_user: root
+      login_password: "{{ new_db_pass }}"
+      name: bet    
+      state: present
+
+  - name: Restore database bet
+    mysql_db:
+      login_user: root
+      login_password: "{{ new_db_pass }}"
+      name: bet
+      state: import
+      target: /vagrant/bet.dmp
+
+  - name: Specify grants 
+    mysql_user:
+      login_user: root
+      login_password: "{{ new_db_pass }}"
+      name: repl
+      host: '%'
+      password: "{{ repl_pass }}"
+      priv: "*.*:REPLICATION SLAVE"
+      state: present
+
+- hosts: slave
+  become: yes
+  tasks:
+  - name: Copy config on server
+    copy:
+      src: conf.d/{{ item }}
+      dest: /etc/my.cnf.d/
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - 01-base.cnf
+      - 02-max-connections.cnf
+      - 03-performance.cnf
+      - 04-slow-query.cnf
+      - 05-binlog.cnf
+
+  - name: change server id
+    lineinfile:
+      path: /etc/my.cnf.d/01-base.cnf
+      regexp: '^server-id '
+      line: server-id = 2
+
+  - name: change replicate-ignore-table
+    lineinfile:
+      path: /etc/my.cnf.d/05-binlog.cnf
+      regexp: '#replicate-ignore-table=bet.events_on_demand'
+      line: replicate-ignore-table=bet.events_on_demand
+
+  - name: change replicate-ignore-table
+    lineinfile:
+      path: /etc/my.cnf.d/05-binlog.cnf
+      regexp: '#replicate-ignore-table=bet.v_same_event'
+      line: replicate-ignore-table=bet.v_same_event
+
+  - name: start mysql
+    systemd:
+      state: started
+      name: mysql
+
+  - name: grep password
+    shell: cat /var/log/mysqld.log | grep 'root@localhost:' | awk '{print $11}'
+    register: mysql_pass
+
+  - name: Change root password
+    command: mysqladmin -u root -p'{{ mysql_pass.stdout }}' password "{{ new_db_pass }}"
+
+  - name: change master server
+    mysql_replication:
+      login_user: root
+      login_password: "{{ new_db_pass }}"
+      mode: changemaster
+      master_host: 192.168.11.150
+      master_user: repl
+      master_password: "{{ repl_pass }}"
+      master_port: 3306
+      master_auto_position: yes
+
+  - name: start mysql slave
+    mysql_replication:
+      login_user: root
+      login_password: "{{ new_db_pass }}"
+      mode: startslave
+
+- hosts: master
+  become: yes
+  tasks:
+  - name: test replication
+    shell: mysql -u root -p'P@ssw0rd' bet --execute="INSERT INTO bookmaker (id,bookmaker_name) VALUES(1,'1xbet')"
+
+
