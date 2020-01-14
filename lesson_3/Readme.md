@@ -1,7 +1,8 @@
-Уменьшить том под / до 8G.
+### Уменьшить том под / до 8G.
 
 
-Подготовим временный том для / 
+##### Подготовим временный том для /
+```bash
 [root@lesson03 ~]# pvcreate /dev/sdb
   Physical volume "/dev/sdb" successfully created.
 [root@lesson03 ~]# vgcreate vg_root /dev/sdb
@@ -62,12 +63,15 @@ xfsdump: dump complete: 26 seconds elapsed
 xfsdump: Dump Status: SUCCESS
 xfsrestore: restore complete: 26 seconds elapsed
 xfsrestore: Restore Status: SUCCESS
-
-Проверим, что всё скопировалось:
+```
+##### Проверим, что всё скопировалось:
+```bash
 [root@lesson03 ~]# ls /mnt/
 bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
 [root@lesson03 ~]# for i in /proc/ /sys/ /dev/ /run/ /boot/; do mount --bind $i /mnt/$i; done
-Cделаем в него chroot и обновим grub:
+```
+##### Cделаем в него chroot и обновим grub:
+```bash
 [root@lesson03 ~]# chroot /mnt/
 [root@lesson03 /]# grub2-mkconfig -o /boot/grub2/grub.cfg
 Generating grub configuration file ...
@@ -78,7 +82,9 @@ Found initrd image: /boot/initramfs-3.10.0-957.el7.x86_64.img
 Found linux image: /boot/vmlinuz-0-rescue-8b6f5bdbdf034bb29412116f87b4bbc7
 Found initrd image: /boot/initramfs-0-rescue-8b6f5bdbdf034bb29412116f87b4bbc7.img
 done
-Обновим образ initrd:
+```
+##### Обновим образ initrd:
+```bash
 [root@lesson03 /]# cd /boot ; for i in `ls initramfs-*img`; do dracut -v $i `echo $i|sed "s/initramfs-//g;
 > s/.img//g"` --force; done
 Kernel version 0-rescue-8b6f5bdbdf034bb29412116f87b4bbc7 has no module directory /lib/modules/0-rescue-8b6f5bdbdf034bb29412116f87b4bbc7
@@ -101,7 +107,9 @@ Executing: /usr/sbin/dracut -v initramfs-0-rescue-8b6f5bdbdf034bb29412116f87b4bb
 *** Creating image file done ***
 *** Creating initramfs image file '/boot/initramfs-3.10.0-957.el7.x86_64kdump.img' done ***
 [root@lesson03 boot]# nano /etc/fstab
- заменитм rd.lvm.lv на rd.lvm.lv=vg_root/lv_root
+```
+##### Заменим rd.lvm.lv на rd.lvm.lv=vg_root/lv_root
+```bash
 [root@lesson03 boot]# nano /boot/grub2/grub.cfg
 [root@lesson03 boot]# grub2-mkconfig -o /boot/grub2/grub.cfg
 Generating grub configuration file ...
@@ -112,9 +120,13 @@ Found initrd image: /boot/initramfs-3.10.0-957.el7.x86_64.img
 Found linux image: /boot/vmlinuz-0-rescue-8b6f5bdbdf034bb29412116f87b4bbc7
 Found initrd image: /boot/initramfs-0-rescue-8b6f5bdbdf034bb29412116f87b4bbc7.img
 done
-Перезагружаемся:
+```
+##### Перезагружаемся:
+```bash
 [root@lesson03 ~]# reboot
-Проверяем:
+```
+##### Проверяем:
+```bash
 [root@lesson03 ~]# lsblk
 NAME              MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
 sda                 8:0    0   40G  0 disk
@@ -125,7 +137,9 @@ sda                 8:0    0   40G  0 disk
 sdb                 8:16   0   10G  0 disk
 └─vg_root-lv_root 253:0    0   10G  0 lvm  /
 sr0                11:0    1 1024M  0 rom
-Удадяем старый LV и создаём новый на 8G:
+```
+##### Удаляем старый LV и создаём новый на 8G:
+```bash
 [root@lesson03 ~]# lvremove /dev/centos/root
 Do you really want to remove active logical volume centos/root? [y/n]: y
   Logical volume "root" successfully removed
@@ -216,19 +230,18 @@ Executing: /usr/sbin/dracut -v initramfs-0-rescue-8b6f5bdbdf034bb29412116f87b4bb
 *** Creating image file ***
 *** Creating image file done ***
 *** Creating initramfs image file '/boot/initramfs-3.10.0-957.el7.x86_64kdump.img' done ***
+```
+
+### Выделить том под /var в зеркало.
 
 
-Выделить том под /var в зеркало.
-
-
-Создаем зеркало на свободных дисках, создаём на нём фс и перемещаем туда /var:
+##### Создаем зеркало на свободных дисках, создаём на нём фс и перемещаем туда /var:
+```bash
 [root@lesson03 boot]# pvcreate /dev/sdc /dev/sdd
   Physical volume "/dev/sdc" successfully created.
   Physical volume "/dev/sdd" successfully created.
 [root@lesson03 boot]# vgcreate vg_var /dev/sdc /dev/sdd
   Volume group "vg_var" successfully created
-[root@lesson03 boot]# cd /boot ; for i in `ls initramfs-*img`; do dracut -v $i `echo $i|sed "s/initramfs-//g;
-> ^C
 [root@lesson03 boot]# lvcreate -L 950M -m1 -n lv_var vg_var
   Rounding up size to full physical extent 952.00 MiB
   Logical volume "lv_var" created.
@@ -255,8 +268,10 @@ Creating journal (4096 blocks): done
 Writing superblocks and filesystem accounting information: done
 [root@lesson03 boot]# mount /dev/vg_var/lv_var /mnt
 [root@lesson03 boot]# cp -aR /var/* /mnt/
+```
 
-Проверяем:
+##### Проверяем:
+```bash
 [root@lesson03 boot]# ls -l /mnt/
 total 84
 drwxr-xr-x.  2 root root  4096 Apr 11  2018 adm
@@ -280,8 +295,10 @@ lrwxrwxrwx.  1 root root     6 Jan 13 14:40 run -> ../run
 drwxr-xr-x.  8 root root  4096 Jan 13 12:51 spool
 drwxrwxrwt.  2 root root  4096 Jan 13 14:45 tmp
 drwxr-xr-x.  2 root root  4096 Apr 11  2018 yp
+```
 
-Удаляем старое содержимое и добавляем запись в fstab:
+##### Удаляем старое содержимое и добавляем запись в fstab:
+```bash
 [root@lesson03 boot]# rm -rf /var/*
 [root@lesson03 boot]# umount /mnt
 [root@lesson03 boot]# mount /dev/vg_var/lv_var /var
@@ -289,7 +306,9 @@ drwxr-xr-x.  2 root root  4096 Apr 11  2018 yp
 [root@lesson03 boot]# exit
 exit
 [root@lesson03 ~]# reboot
-Проверяем:
+```
+##### Проверяем:
+```bash
 [root@lesson03 ~]# df -h
 Filesystem                 Size  Used Avail Use% Mounted on
 devtmpfs                   1.9G     0  1.9G   0% /dev
@@ -299,12 +318,13 @@ tmpfs                      1.9G     0  1.9G   0% /sys/fs/cgroup
 /dev/mapper/centos-root    8.0G  1.2G  6.9G  15% /
 /dev/sda1                 1014M  158M  857M  16% /boot
 /dev/mapper/vg_var-lv_var  922M  179M  679M  21% /var
+```
+
+### Выделить том под /home
 
 
-Выделить том под /home
-
-
-Создаём раздел, на нём фс и перемещаем туда /home:
+##### Создаём раздел, на нём фс и перемещаем туда /home:
+```bash
 [root@lesson03 ~]# lvcreate -n lv_home -L 2G /dev/centos
   Logical volume "lv_home" created.
 [root@lesson03 ~]# lvs
@@ -333,16 +353,24 @@ realtime =none                   extsz=4096   blocks=0, rtextents=0
 [root@lesson03 ~]# umount /mnt
 [root@lesson03 ~]# mount /dev/centos/lv_home /home/
 [root@lesson03 ~]# echo "`blkid | grep home | awk '{print $2}'` /home xfs defaults 0 0" >> /etc/fstab
-Сгенерируем файлы в /home/:
+```
+##### Сгенерируем файлы в /home/:
+```bash
 [root@lesson03 ~]# touch /home/file{1..20}
-Сделаем снапшот:
+```
+##### Сделаем снапшот:
+```bash
 [root@lesson03 ~]# lvcreate -L 100MB -s -n home_snap /dev/centos/lv_home
   Logical volume "home_snap" created.
-Удалим часть файлов:
+```
+##### Удалим часть файлов:
+```bash
 [root@lesson03 ~]# rm -f /home/file{11..20}
 [root@lesson03 ~]# ls /home/
 file1  file10  file2  file3  file4  file5  file6  file7  file8  file9
-Восстановим файлы со снапшота:
+```
+##### Восстановим файлы со снапшота:
+```bash
 [root@lesson03 ~]# umount /home
 [root@lesson03 ~]# lvconvert --merge /dev/centos/home_snap
   Merging of volume centos/home_snap started.
@@ -350,3 +378,4 @@ file1  file10  file2  file3  file4  file5  file6  file7  file8  file9
 [root@lesson03 ~]# mount /home
 [root@lesson03 ~]# ls /home/
 file1  file10  file11  file12  file13  file14  file15  file16  file17  file18  file19  file2  file20  file3  file4  file5  file6  file7  file8  file9
+```
