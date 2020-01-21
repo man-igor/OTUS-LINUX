@@ -1,0 +1,131 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: Add key for elasic repo
+    rpm_key:
+      state: present
+      key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+  - name: install elastic repo
+    yum_repository:
+      name: elasticsearch
+      description: Elasticsearch repository for 7.x packages
+      baseurl: https://artifacts.elastic.co/packages/7.x/yum
+      gpgcheck: yes
+      gpgkey: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+      enabled: no    
+
+- hosts: log
+  become: yes
+  tasks:
+  - name: install java
+    yum:
+      name: java-openjdk
+      state: present
+  - name: install elk
+    yum:
+      name: "{{ item }}"
+      enablerepo: elasticsearch
+      state: present
+    with_items:
+      - elasticsearch
+      - kibana
+      - logstash
+  - name: Copy elasticsearch configuration
+    template:
+      src: elasticsearch.yml.j2
+      dest: "/etc/elasticsearch/elasticsearch.yml"
+      owner: root
+      group: root
+      mode: 0644
+  - name: Copy kibana configuration
+    template:
+      src: kibana.yml.j2
+      dest: "/etc/kibana/kibana.yml"
+      owner: root
+      group: root
+      mode: 0644
+  - name: Copy logstash configuration
+    template:
+      src: logstash-nginx.conf.j2
+      dest: "/etc/logstash/conf.d/logstash-nginx.conf"
+      owner: root
+      group: root
+      mode: 0644
+  - name: Copy logstash configuration
+    template:
+      src: logstash-system.conf.j2
+      dest: "/etc/logstash/conf.d/logstash-system.conf"
+      owner: root
+      group: root
+      mode: 0644
+  - name: Copy logstash configuration
+    template:
+      src: logstash-auditd.conf.j2
+      dest: "/etc/logstash/conf.d/logstash-auditd.conf"
+      owner: root
+      group: root
+      mode: 0644
+  - name: Ensure elk is started and enabled at boot.
+    service:
+      name: "{{ item }}"
+      state: started
+      enabled: true
+    with_items:
+      - elasticsearch
+      - kibana
+      - logstash
+
+- hosts: web
+  become: yes
+  tasks:
+  - name: Add repository
+    yum:
+      name: epel-release
+      state: present
+  - name: install nginx
+    yum:
+      name: nginx
+      state: present
+#  - name: install auditd
+#    yum:
+#      name: "{{ item }}"
+#      state: present
+#    with_items:
+#      - audit
+#      - audit-libs
+  - name: install filebeat and auditbeat
+    yum:
+      name: "{{ item }}"
+      enablerepo: elasticsearch
+      state: present
+    with_items:
+      - filebeat
+      - auditbeat
+  - name: Copy filebeat configuration
+    template:
+      src: filebeat.yml.j2
+      dest: "/etc/filebeat/filebeat.yml"
+      owner: root
+      group: root
+      mode: 0644
+  - name: Copy auditbeat configuration
+    template:
+      src: auditbeat.yml.j2
+      dest: "/etc/auditbeat/auditbeat.yml"
+      owner: root
+      group: root
+      mode: 0644
+  - name: Ensure Filebeat is started and enabled at boot.
+    service:
+      name: "{{ item }}"
+      state: started
+      enabled: true
+    with_items:
+      - filebeat
+      - auditbeat
+#      - auditd
+  - name: Enable filebeat nginx module for nginx
+    command: filebeat modules enable nginx
+  - name: Enable filebeat system module for nginx
+    command: filebeat modules enable system

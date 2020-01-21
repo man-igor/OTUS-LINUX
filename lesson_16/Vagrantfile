@@ -1,0 +1,33 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+
+  config.vm.define :log do |srv|
+    srv.vm.hostname = "log"
+    srv.vm.network "private_network", ip: "192.168.33.10"
+    srv.vm.provider "libvirt" do |lb|
+        lb.memory = "2048"
+        lb.cpus = "2"
+    end
+  end
+
+  config.vm.define :web do |cln|
+    cln.vm.hostname = "web"
+    cln.vm.network "private_network", ip: "192.168.33.11"
+    cln.vm.provider "libvirt" do |lb|
+        lb.memory = "1024"
+        lb.cpus = "2"
+    end
+  end
+
+  config.vm.provision "ansible" do |ansible|
+    ansible.verbose = "v"
+    ansible.playbook = "provisioning/playbook.yml"
+    ansible.sudo = "true"
+  end
+end
+
