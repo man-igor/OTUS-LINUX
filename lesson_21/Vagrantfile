@@ -9,7 +9,7 @@ Vagrant.configure(2) do |config|
   config.vm.provision "ansible" do |ansible|
     ansible.verbose = "v"
     ansible.playbook = "provisioning/playbook.yml"
-    ansible.extra_vars = {ospf_view: "assym"}
+    ansible.extra_vars = {ospf_view: "sym"}
     ansible.sudo = "true"
   end
 
