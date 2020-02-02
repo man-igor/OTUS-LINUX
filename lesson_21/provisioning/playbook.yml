@@ -1,0 +1,57 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: Add repository
+    yum:
+      name: epel-release
+      state: present
+      update_cache: yes
+
+  - name: install packages
+    yum:
+      name: quagga
+      state: present
+
+  - name: sysctl ipv4.ip_forward
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: 1
+      state: present
+
+  - name: sysctl ipv4.eth.rp_filter
+    sysctl:
+      name: net.ipv4.conf.all.rp_filter
+      value: 0
+      state: present
+
+  - name: copy zebra config file.
+    template:
+      src: zebra.conf_{{ ansible_hostname }}.j2
+      dest: /etc/quagga/zebra.conf
+      owner: quagga
+      group: quagga
+      mode: 0644
+
+  - name: copy ospfd config file.
+    template:
+      src: ospfd.conf_{{ ansible_hostname }}.j2
+      dest: /etc/quagga/ospfd.conf
+      owner: quagga
+      group: quagga
+      mode: 0644
+
+  - name: enable services.
+    service:
+      name: "{{ item }}"
+      state: started
+    with_items:
+      - zebra
+      - ospfd
+
+  - name: Change cost for route
+    replace:
+      path: /etc/quagga/ospfd.conf
+      regexp: '^!ip ospf cost'
+      replace: 'ip ospf cost {{ 101 | random(start=10, step=10) }}'
+    when: ospf_view == "assym"

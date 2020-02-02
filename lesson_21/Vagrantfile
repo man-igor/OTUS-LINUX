@@ -1,0 +1,46 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "centos/7"
+
+  config.vm.provision "ansible" do |ansible|
+    ansible.verbose = "v"
+    ansible.playbook = "provisioning/playbook.yml"
+    ansible.extra_vars = {ospf_view: "assym"}
+    ansible.sudo = "true"
+  end
+
+    config.vm.provider "libvirt" do |lb|
+      lb.memory = "512"
+    end
+
+  config.vm.define "r1" do |r1|
+    r1.vm.network "private_network", ip: "10.0.0.1", netmask: "255.255.255.252"
+    r1.vm.network "private_network", ip: "10.10.0.1", netmask: "255.255.255.252"
+    r1.vm.hostname = "r1"
+  end
+
+  config.vm.define "r2" do |r2|
+    r2.vm.network "private_network", ip: "10.0.0.2", netmask: "255.255.255.252"
+    r2.vm.network "private_network", ip: "10.20.0.2", netmask: "255.255.255.252"
+    r2.vm.network "private_network", ip: "172.30.0.1", netmask: "255.255.255.252"
+    r2.vm.hostname = "r2"
+  end
+
+  config.vm.define "r3" do |r3|
+    r3.vm.network "private_network", ip: "10.10.0.2", netmask: "255.255.255.252"
+    r3.vm.network "private_network", ip: "10.20.0.1", netmask: "255.255.255.252"
+    r3.vm.hostname = "r3"
+  end
+
+  config.vm.define "r4" do |r4|
+    r4.vm.network "private_network", ip: "172.30.0.2", netmask: "255.255.255.252"
+    r4.vm.hostname = "r4"
+  end
+
+
+end
+
