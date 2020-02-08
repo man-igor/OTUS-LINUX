@@ -9,6 +9,7 @@ iperf3 -c 10.10.10.1 -t 40 -i 5
 
 Результаты:
 <p>dev tap:</p>
+
 ```bash
 [vagrant@client ~]$ iperf3 -c 10.10.10.1 -t 40 -i 5
 Connecting to host 10.10.10.1, port 5201
@@ -29,7 +30,9 @@ Connecting to host 10.10.10.1, port 5201
 
 iperf Done.
 ```
+
 <p>dev tun:</p>
+
 ```bash
 [vagrant@client ~]$ iperf3 -c 10.10.10.1 -t 40 -i 5
 Connecting to host 10.10.10.1, port 5201
