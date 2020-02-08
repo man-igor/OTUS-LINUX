@@ -1,0 +1,124 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: Add repository
+    yum:
+      name: epel-release
+      state: present
+      update_cache: yes
+
+  - name: install packages
+    yum:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - openvpn
+      - iperf3
+
+  - name: copy openvpn static key file.
+    copy:
+      src: static.key
+      dest: /etc/openvpn/
+      owner: root
+      group: root
+      mode: 0644
+    when: openvpn_rasvpn == false
+
+  - name: Disable SELinux
+    selinux:
+      state: disabled
+
+
+- hosts: server
+  become: yes
+  tasks:
+  - name: copy server conf file.
+    template:
+      src: server.conf_{{ ansible_hostname }}.j2
+      dest: /etc/openvpn/server.conf
+      owner: root
+      group: root
+      mode: 0644
+    when: openvpn_rasvpn == false
+
+  - name: copy server conf file.
+    template:
+      src: rasvpn_server.conf_{{ ansible_hostname }}.j2
+      dest: /etc/openvpn/server.conf
+      owner: root
+      group: root
+      mode: 0644
+    when: openvpn_rasvpn == true
+
+  - name: copy server conf file.
+    copy:
+      src: pki
+      dest: /etc/openvpn/
+      owner: root
+      group: root
+      mode: 0644
+    when: openvpn_rasvpn == true
+
+  - name: copy server conf file.
+    copy:
+      src: ta.key
+      dest: /etc/openvpn/
+      owner: root
+      group: root
+      mode: 0644
+    when: openvpn_rasvpn == true
+
+  - name: ensure openvpn service is running
+    service:
+      name: openvpn@server
+      state: started
+      enabled: yes
+
+- hosts: client
+  become: yes
+  tasks:
+  - name: copy server conf file.
+    template:
+      src: server.conf_{{ ansible_hostname }}.j2
+      dest: /etc/openvpn/server.conf
+      owner: root
+      group: root
+      mode: 0644
+    when: openvpn_rasvpn == false
+
+  - name: copy server conf file.
+    template:
+      src: rasvpn_server.conf_{{ ansible_hostname }}.j2
+      dest: /etc/openvpn/server.conf
+      owner: root
+      group: root
+      mode: 0644
+    when: openvpn_rasvpn == true
+
+  - name: copy ca and client certificate file.
+    copy:
+      src: "client/{{ item }}"
+      dest: /etc/openvpn/
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - ca.crt
+      - client.crt
+    when: openvpn_rasvpn == true
+
+  - name: copy client.key file.
+    copy:
+      src: client/client.key
+      dest: /etc/openvpn/
+      owner: root
+      group: root
+      mode: 0644
+    when: openvpn_rasvpn == true
+
+  - name: ensure openvpn service is running
+    service:
+      name: openvpn@server
+      state: started
+      enabled: yes
