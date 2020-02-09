@@ -1,0 +1,175 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: Add repository
+    yum:
+      name: epel-release
+      state: present
+      update_cache: yes
+
+  - name: install needed network manager libs
+    yum:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - NetworkManager-glib
+      - nm-connection-editor
+      - libsemanage-python
+      - policycoreutils-python
+
+- hosts: testClient1
+  become: yes
+  tasks:
+  - name: add eth1 to vlan
+    nmcli:
+      type: vlan
+      ifname: vlan100
+      conn_name: vlan100
+      vlandev: eth1
+      vlanid: 100
+      ip4: 10.10.10.1/24
+      state: present
+
+- hosts: testServer1
+  become: yes
+  tasks:
+  - name: add eth1 to vlan
+    nmcli:
+      type: vlan
+      ifname: vlan100
+      conn_name: vlan100
+      vlandev: eth1
+      vlanid: 100
+      ip4: 10.10.10.254/24
+      state: present
+
+- hosts: testClient2
+  become: yes
+  tasks:
+  - name: add eth1 to vlan
+    nmcli:
+      type: vlan
+      ifname: vlan101
+      conn_name: vlan101
+      vlandev: eth1
+      vlanid: 101
+      ip4: 10.10.10.1/24
+      state: present
+
+- hosts: testServer2
+  become: yes
+  tasks:
+  - name: add eth1 to vlan
+    nmcli:
+      type: vlan
+      ifname: vlan101
+      conn_name: vlan101
+      vlandev: eth1
+      vlanid: 101
+      ip4: 10.10.10.254/24
+      state: present
+
+- hosts: centralRouter
+  become: yes
+  tasks:
+  - name: Remove eth1 ip
+    shell: ip add flush dev eth1
+  - name: Remove eth2 ip
+    shell: ip add flush dev eth2
+  - name: Remove eth3 ip
+    shell: ip add flush dev eth3
+  - name: Ebnable forwarding
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: '1'
+      sysctl_set: yes
+      state: present
+      reload: yes
+  - name: Create bond0
+    nmcli:
+      type: bond
+      conn_name: bond0
+      ifname: bond0
+      ip4: 192.168.255.2
+      mode: active-backup
+      state: present
+  - name: Add eth1 to bond0
+    nmcli:
+      type: bond-slave
+      conn_name: bond-slave-eth1
+      ifname: eth1
+      master: bond0
+      state: present
+  - name: Add eth2 to bond0
+    nmcli:
+      type: bond-slave
+      conn_name: bond-slave-eth2
+      ifname: eth2
+      master: bond0
+      state: present
+  - name: Up bond-slave-eth1
+    shell: nmcli connection up bond-slave-eth1
+  - name: Up bond-slave-eth2
+    shell: nmcli connection up bond-slave-eth2
+  - name: add eth3 to vlan
+    nmcli:
+      type: vlan
+      ifname: vlan100
+      conn_name: vlan100
+      vlandev: eth3
+      vlanid: 100
+      state: present
+  - name: add eth3 to vlan
+    nmcli:
+      type: vlan
+      ifname: vlan101
+      conn_name: vlan101
+      vlandev: eth3
+      vlanid: 101
+      state: present
+  - name: Add static route  
+    shell: ip route add 192.168.255.0/24 via 192.168.255.2 dev bond0
+
+- hosts: inetRouter
+  become: yes
+  tasks:
+  - name: Remove eth1 ip
+    shell: ip add flush dev eth1
+  - name: Remove eth2 ip
+    shell: ip add flush dev eth2
+  - name: Enable forwarding
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: '1'
+      sysctl_set: yes
+      state: present
+      reload: yes
+  - name: Create bond0
+    nmcli:
+      type: bond
+      conn_name: bond0
+      ifname: bond0
+      ip4: 192.168.255.1
+      mode: active-backup
+      state: present
+  - name: Add eth1 to bond0
+    nmcli:
+      type: bond-slave
+      conn_name: bond-slave-eth1
+      ifname: eth1
+      master: bond0
+      state: present
+  - name: Add eth2 to bond0
+    nmcli:
+      type: bond-slave
+      conn_name: bond-slave-eth2
+      ifname: eth2
+      master: bond0
+      state: present
+  - name: Up bond-slave-eth1
+    shell: nmcli connection up bond-slave-eth1
+  - name: Up bond-slave-eth2
+    shell: nmcli connection up bond-slave-eth2
+  - name: Add static route
+    shell: ip route add 192.168.255.2 via 192.168.255.1 dev bond0

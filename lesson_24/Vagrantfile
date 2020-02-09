@@ -1,0 +1,71 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "centos/7"
+
+    config.vm.provider "libvirt" do |lb|
+      lb.memory = "512"
+    end
+
+  config.vm.define "testClient1" do |tc1|
+    tc1.vm.network "private_network", type: "dhcp"
+    tc1.vm.hostname = "testClient1"
+  end
+
+  config.vm.define "testServer1" do |ts1|
+    ts1.vm.network "private_network", type: "dhcp"
+    ts1.vm.hostname = "testServer1"
+  end
+
+  config.vm.define "testClient2" do |tc2|
+    tc2.vm.network "private_network", type: "dhcp"
+    tc2.vm.hostname = "testClient2"
+  end
+
+  config.vm.define "testServer2" do |ts2|
+    ts2.vm.network "private_network", type: "dhcp"
+    ts2.vm.hostname = "testServer2"
+  end
+
+  config.vm.define "centralRouter" do |cr|
+    cr.vm.network "private_network", type: "dhcp"
+    cr.vm.network "private_network", type: "dhcp"
+    cr.vm.network "private_network", type: "dhcp"
+    cr.vm.hostname = "centralRouter"
+  end
+
+  config.vm.define "inetRouter" do |ir|
+    ir.vm.network "private_network", type: "dhcp"
+    ir.vm.network "private_network", type: "dhcp"
+    ir.vm.hostname = "inetRouter"
+  end
+
+
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "provisioning/playbook.yml"
+    ansible.sudo = "true"
+  end
+end
+
+
+#Vagrant.configure(2) do |config|
+#  config.vm.box = "centos/7"
+#  config.vm.network  :private_network, :ip => "10.10.10.1"
+#  config.vm.hostname = "testClient1"
+#  config.vm.provision :shell, inline: "ip link add link eth1 name eth1.100 type vlan id 100"
+#end
+
+#  config.vm.define "centralRouter" do |cr|
+#    cr.vm.network "private_network", ip: "172.30.0.2", netmask: "255.255.255.252"
+#    cr.vm.network "private_network", ip: "172.30.0.2", netmask: "255.255.255.252"
+#    cr.vm.hostname = "centralRouter"
+#  end
+
+#  config.vm.define "inetRouter" do |ir|
+#    ir.vm.network "private_network", ip: "172.30.0.2", netmask: "255.255.255.252"
+#    ir.vm.hostname = "inetRouter"
+#  end
+
