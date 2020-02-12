@@ -1,18 +1,41 @@
+### Попасть в систему без пароля несколькими способами
+
+Для получения доступа необходимо запустить виртуальную машину и при выборе ядра для загрузки нажать e. После этого мы попадаем в окно, где мы можем изменить параметры загрузки:
+
+##### Способ 1:
+
+В конце строки начинающейся с linux16 добавляем init=/bin/sh и нажимаем сtrl-x для загрузки системы. Корневая файловая система будет смонтирована в режиме Read-Only.
+
+##### Способ 2:
+
+В конце строки начинающейся с linux16 добавляем  rd.break  и нажимаем сtrl-x для загрузки системы и попадаем в emergency mode. Корневая файловая система будет смонтирована в режиме Read-Only. С помощью следующих команд можно перемонтировать систему в режим rw и поменять пароль администратора.
+
+```bash
+mount -o remount,rw /sysroot
+chroot /sysroot
+passwd root
+touch /.autorelabel
+```
+
+### Переименовать vg
+
+##### Проверим текущее состояние:
+
 ```bash
 [root@lesson07 ~]# vgs
   VG     #PV #LV #SN Attr   VSize   VFree
   centos   1   2   0 wz--n- <39.00g    0
+```
+
+##### Переименуем vg:
+```bash
 [root@lesson07 ~]# vgrename centos otus
   Volume group "centos" successfully renamed to "otus"
-[root@lesson07 ~]# nano /etc/fstab
-[root@lesson07 ~]# nano /etc/de
-default/  depmod.d/
-[root@lesson07 ~]# nano /etc/default/grub
-[root@lesson07 ~]# nano /boot/grub2/grub.cfg
-[root@lesson07 ~]# up
-update-alternatives   update-ca-trust       update-mime-database  update-pciids         uptime
-[root@lesson07 ~]# up
-update-alternatives   update-ca-trust       update-mime-database  update-pciids         uptime
+```
+
+##### Правим файлы /etc/fstab, /etc/default/grub, /boot/grub2/grub.cfg меняем старое название на новое.
+Пересоздаем initrd image, чтобы он знал новое название:
+```bash
 [root@lesson07 ~]# mkinitrd -f -v /boot/initramfs-$(uname -r).img $(uname -r)
 Executing: /usr/sbin/dracut -f -v /boot/initramfs-3.10.0-1062.9.1.el7.x86_64.img 3.10.0-1062.9.1.el7.x86_64
 dracut module 'modsign' will not be installed, because command 'keyctl' could not be found!
@@ -104,4 +127,28 @@ intel-06-55-04: caveat is disabled in configuration
 *** Creating image file done ***
 *** Creating initramfs image file '/boot/initramfs-3.10.0-1062.9.1.el7.x86_64.img' done ***
 [root@lesson07 ~]# reboot
+```
+
+##### Перезагружаемся и проверяем:
+
+```bash
+[root@lesson07 ~]# vgs
+  VG   #PV #LV #SN Attr   VSize   VFree
+  otus   1   2   0 wz--n- <39.00g    0
+```
+
+### Добавить модуль в initrd
+
+##### Создаем папку с именем 01test в директории /usr/lib/dracut/modules.d/:
+```bash
+[root@lesson07 ~]# mkdir /usr/lib/dracut/modules.d/01test
+```
+
+##### Поместим туда два скрипта:
+- module_setup.sh
+- test.sh
+
+##### Пересобираем образ initrd:
+```bash
+ dracut -f -v
 ```
